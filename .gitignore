@@ -1,3 +1,27 @@
 # See individual folders for their .gitignore files
-frontend/
-backend/
+# Note: frontend and backend should be committed to the repo
+# frontend/
+# backend/
+
+# Dependencies
+**/node_modules/
+**/dist/
+**/build/
+
+# Environment variables
+**/.env
+**/.env.local
+
+# Logs
+**/logs/
+**/*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
