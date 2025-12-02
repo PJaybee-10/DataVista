@@ -2,6 +2,16 @@
 
 Employee management system built with React and GraphQL.
 
+## Live Demo
+
+- **Frontend**: https://data-vista-omega.vercel.app
+- **Backend API**: [Coming soon - Railway deployment in progress]
+
+## Demo Credentials
+
+- Admin: admin@datavista.com / admin123
+- Employee: employee@datavista.com / employee123
+
 ## Setup
 
 You'll need Node.js 18+ and PostgreSQL installed.
