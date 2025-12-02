@@ -1,27 +1,35 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
 import { AnimatePresence } from 'framer-motion';
 import { Grid, LayoutGrid, Search, Filter, RefreshCw } from 'lucide-react';
 import { useAuthStore } from './store/authStore';
 import { useViewStore } from './store/viewStore';
+import type { Employee } from './types';
+import { DEFAULT_PAGE_SIZE } from './config/constants';
+import { useDebounce } from './hooks/useCustomHooks';
+import { useToastStore } from './components/Toast';
 import Login from './components/Login';
 import HamburgerMenu from './components/HamburgerMenu';
 import HorizontalMenu from './components/HorizontalMenu';
 import EmployeeGrid from './components/EmployeeGrid';
 import EmployeeTileView from './components/EmployeeTileView';
 import EmployeeDetail from './components/EmployeeDetail';
+import SkeletonLoader from './components/SkeletonLoader';
+import ToastContainer from './components/Toast';
 import { GET_EMPLOYEES, FLAG_EMPLOYEE, DELETE_EMPLOYEE } from './apollo/queries';
 import './App.css';
 
 function App() {
   const { isAuthenticated, user } = useAuthStore();
   const { viewMode, setViewMode, selectedEmployeeId, setSelectedEmployeeId } = useViewStore();
+  const addToast = useToastStore((state) => state.addToast);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 300);
   const [departmentFilter, setDepartmentFilter] = useState('');
 
   const { data, loading, error, refetch } = useQuery(GET_EMPLOYEES, {
     variables: {
-      limit: 100,
+      limit: DEFAULT_PAGE_SIZE,
       offset: 0,
       filter: departmentFilter ? { department: departmentFilter } : undefined,
     },
@@ -29,26 +37,51 @@ function App() {
   });
 
   const [flagEmployee] = useMutation(FLAG_EMPLOYEE, {
-    refetchQueries: [{ query: GET_EMPLOYEES, variables: { limit: 100, offset: 0 } }],
+    refetchQueries: [{ query: GET_EMPLOYEES, variables: { limit: DEFAULT_PAGE_SIZE, offset: 0 } }],
+    onCompleted: () => {
+      addToast({ type: 'success', message: 'Employee flag status updated successfully' });
+    },
+    onError: (error) => {
+      console.error('Failed to flag employee:', error);
+      addToast({ type: 'error', message: 'Failed to update employee flag status' });
+    },
   });
 
   const [deleteEmployee] = useMutation(DELETE_EMPLOYEE, {
-    refetchQueries: [{ query: GET_EMPLOYEES, variables: { limit: 100, offset: 0 } }],
+    refetchQueries: [{ query: GET_EMPLOYEES, variables: { limit: DEFAULT_PAGE_SIZE, offset: 0 } }],
+    onCompleted: () => {
+      addToast({ type: 'success', message: 'Employee deleted successfully' });
+    },
+    onError: (error) => {
+      console.error('Failed to delete employee:', error);
+      addToast({ type: 'error', message: 'Failed to delete employee' });
+    },
   });
 
   if (!isAuthenticated) {
     return <Login />;
   }
 
-  const employees = data?.employees?.edges || [];
+  const employees: Employee[] = data?.employees?.edges || [];
   
-  const filteredEmployees = employees.filter((emp: any) =>
-    emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    emp.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    emp.position.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Memoize filtered employees to avoid unnecessary recalculations
+  const filteredEmployees = useMemo(() => {
+    if (!debouncedSearch) return employees;
+    
+    const query = debouncedSearch.toLowerCase().trim();
+    return employees.filter((emp) =>
+      emp.name.toLowerCase().includes(query) ||
+      emp.email.toLowerCase().includes(query) ||
+      (emp.position?.toLowerCase() || '').includes(query) ||
+      (emp.department?.toLowerCase() || '').includes(query)
+    );
+  }, [employees, debouncedSearch]);
 
-  const departments = [...new Set(employees.map((e: any) => e.department).filter(Boolean))];
+  // Memoize unique departments
+  const departments = useMemo(
+    () => [...new Set(employees.map((e) => e.department).filter(Boolean))],
+    [employees]
+  );
 
   const handleFlag = (id: number, flagged: boolean) => {
     flagEmployee({ variables: { id, flagged } });
@@ -166,11 +199,7 @@ function App() {
         </div>
 
         {/* Content */}
-        {loading && (
-          <div className="flex justify-center items-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-          </div>
-        )}
+        {loading && <SkeletonLoader count={6} viewMode={viewMode} />}
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
@@ -213,6 +242,9 @@ function App() {
           />
         )}
       </AnimatePresence>
+
+      {/* Toast Notifications */}
+      <ToastContainer />
     </div>
   );
 }

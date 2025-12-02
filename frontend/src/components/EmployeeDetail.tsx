@@ -1,6 +1,7 @@
 import React from 'react';
 import { useQuery, useMutation } from '@apollo/client';
 import { motion } from 'framer-motion';
+import { ATTENDANCE_STATUS_COLORS, PRIORITY_COLORS } from '../config/constants';
 import {
   Mail,
   Phone,
@@ -61,18 +62,8 @@ const EmployeeDetail: React.FC<EmployeeDetailProps> = ({ employeeId, onClose }) 
   };
 
   const getAttendanceColor = (status: string) => {
-    switch (status) {
-      case 'PRESENT':
-        return 'bg-green-100 text-green-700 border-green-200';
-      case 'LATE':
-        return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-      case 'ABSENT':
-        return 'bg-red-100 text-red-700 border-red-200';
-      case 'LEAVE':
-        return 'bg-blue-100 text-blue-700 border-blue-200';
-      default:
-        return 'bg-gray-100 text-gray-700 border-gray-200';
-    }
+    return ATTENDANCE_STATUS_COLORS[status as keyof typeof ATTENDANCE_STATUS_COLORS] || 
+           'bg-gray-100 text-gray-700 border-gray-200';
   };
 
   return (
@@ -268,11 +259,8 @@ const EmployeeDetail: React.FC<EmployeeDetailProps> = ({ employeeId, onClose }) 
                     </div>
                     <span
                       className={`px-2 py-1 text-xs rounded ${
-                        task.priority === 'high'
-                          ? 'bg-red-100 text-red-700'
-                          : task.priority === 'medium'
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : 'bg-green-100 text-green-700'
+                        PRIORITY_COLORS[task.priority?.toUpperCase() as keyof typeof PRIORITY_COLORS] || 
+                        PRIORITY_COLORS.LOW
                       }`}
                     >
                       {task.priority}

@@ -1,19 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-
-interface User {
-  id: number;
-  email: string;
-  role: 'ADMIN' | 'EMPLOYEE';
-}
-
-interface AuthState {
-  token: string | null;
-  user: User | null;
-  isAuthenticated: boolean;
-  login: (token: string, user: User) => void;
-  logout: () => void;
-}
+import type { User, AuthState } from '../types';
+import { TOKEN_KEY } from '../config/constants';
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -21,11 +9,23 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       user: null,
       isAuthenticated: false,
-      login: (token, user) => set({ token, user, isAuthenticated: true }),
-      logout: () => set({ token: null, user: null, isAuthenticated: false }),
+      login: (token: string, user: User) => {
+        set({ token, user, isAuthenticated: true });
+      },
+      logout: () => {
+        // Clear token from localStorage
+        localStorage.removeItem(TOKEN_KEY);
+        set({ token: null, user: null, isAuthenticated: false });
+      },
     }),
     {
-      name: 'auth-storage',
+      name: TOKEN_KEY,
+      // Only persist token and user, not the entire state
+      partialize: (state) => ({
+        token: state.token,
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
+      }),
     }
   )
 );

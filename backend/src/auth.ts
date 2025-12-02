@@ -1,17 +1,18 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { PrismaClient } from '@prisma/client';
+import type { AuthContext, JWTPayload } from './types.js';
 
-const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production-2024';
-
-export interface AuthContext {
-  userId?: number;
-  role?: 'ADMIN' | 'EMPLOYEE';
+// Environment validation
+if (!process.env.JWT_SECRET) {
+  console.warn('⚠️  WARNING: JWT_SECRET not set in environment variables. Using default (insecure).');
 }
 
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production-2024';
+const SALT_ROUNDS = 10;
+const TOKEN_EXPIRY = '7d';
+
 export const hashPassword = async (password: string): Promise<string> => {
-  return await bcrypt.hash(password, 10);
+  return await bcrypt.hash(password, SALT_ROUNDS);
 };
 
 export const comparePassword = async (password: string, hash: string): Promise<boolean> => {
@@ -19,14 +20,19 @@ export const comparePassword = async (password: string, hash: string): Promise<b
 };
 
 export const generateToken = (userId: number, role: 'ADMIN' | 'EMPLOYEE'): string => {
-  return jwt.sign({ userId, role }, JWT_SECRET, { expiresIn: '7d' });
+  const payload: JWTPayload = { userId, role };
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
 };
 
-export const verifyToken = (token: string): { userId: number; role: 'ADMIN' | 'EMPLOYEE' } | null => {
+export const verifyToken = (token: string): JWTPayload | null => {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: number; role: 'ADMIN' | 'EMPLOYEE' };
+    const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
     return decoded;
-  } catch {
+  } catch (error) {
+    // Log error in development
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Token verification failed:', error);
+    }
     return null;
   }
 };

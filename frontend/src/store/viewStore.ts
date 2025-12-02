@@ -1,15 +1,25 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import type { ViewStore } from '../types';
 
-interface ViewState {
-  viewMode: 'grid' | 'tile';
-  setViewMode: (mode: 'grid' | 'tile') => void;
-  selectedEmployeeId: number | null;
-  setSelectedEmployeeId: (id: number | null) => void;
-}
-
-export const useViewStore = create<ViewState>((set) => ({
-  viewMode: 'tile',
-  setViewMode: (mode) => set({ viewMode: mode }),
-  selectedEmployeeId: null,
-  setSelectedEmployeeId: (id) => set({ selectedEmployeeId: id }),
-}));
+export const useViewStore = create<ViewStore>()(
+  persist(
+    (set) => ({
+      viewMode: 'tile',
+      setViewMode: (mode: 'grid' | 'tile') => {
+        set({ viewMode: mode });
+      },
+      selectedEmployeeId: null,
+      setSelectedEmployeeId: (id: number | null) => {
+        set({ selectedEmployeeId: id });
+      },
+    }),
+    {
+      name: 'view-storage',
+      // Only persist viewMode, not selectedEmployeeId
+      partialize: (state) => ({
+        viewMode: state.viewMode,
+      }),
+    }
+  )
+);

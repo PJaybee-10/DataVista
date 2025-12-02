@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MoreVertical, Edit, Flag, Trash2, Eye, Mail, Phone, Briefcase, CheckCircle } from 'lucide-react';
-import type { Employee } from './EmployeeGrid';
+import type { Employee } from '../types';
+import { ATTENDANCE_STATUS_COLORS } from '../config/constants';
 
 interface EmployeeTileViewProps {
   employees: Employee[];
@@ -47,10 +48,17 @@ const EmployeeTileView: React.FC<EmployeeTileViewProps> = ({
       {employees.map((employee, index) => (
         <motion.div
           key={employee.id}
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: index * 0.05 }}
-          className="relative bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden group"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ 
+            delay: index * 0.05,
+            type: 'spring',
+            stiffness: 260,
+            damping: 20
+          }}
+          whileHover={{ y: -8, transition: { duration: 0.2 } }}
+          className="relative bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden group cursor-pointer"
+          onClick={() => onSelectEmployee(employee.id)}
         >
           {/* Flag indicator */}
           {employee.flagged && (
@@ -200,18 +208,15 @@ const EmployeeTileView: React.FC<EmployeeTileViewProps> = ({
                 <div className="text-center">
                   <div className="text-xs text-gray-500 mb-1">Attendance</div>
                   <div className="flex gap-1">
-                    {employee.attendance.slice(0, 5).map((att) => (
+                    {employee.attendance?.slice(0, 5).map((att) => (
                       <div
                         key={att.id}
-                        className={`w-2 h-6 rounded-full ${
-                          att.status === 'PRESENT' ? 'bg-green-500' :
-                          att.status === 'LATE' ? 'bg-yellow-500' :
-                          att.status === 'ABSENT' ? 'bg-red-500' :
-                          'bg-blue-500'
-                        }`}
+                        className={`w-2 h-6 rounded-full ${ATTENDANCE_STATUS_COLORS[att.status]}`}
                         title={`${new Date(att.date).toLocaleDateString()}: ${att.status}`}
                       />
-                    ))}
+                    )) || (
+                      <span className="text-xs text-gray-400">No data</span>
+                    )}
                   </div>
                 </div>
               </div>
